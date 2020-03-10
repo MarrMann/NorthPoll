@@ -1,0 +1,16 @@
+{
+    "name": "stat-bot",
+    "version": "0.0.1",
+    "description": "A bot for getting chat statistics on a server",
+    "main": "bot.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "__#8651",
+    "license": "ISC",
+    "dependencies": {
+        "discord.js": "^11.6.1",
+        "dotenv": "^8.2.0"
+    }
+}
