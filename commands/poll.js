@@ -8,7 +8,7 @@ class Poll{
         this.key = question + author.id;
     }
 
-    key = ``
+    key = ``;
     question = ``;
     author;
     anonymous = false;
@@ -96,7 +96,7 @@ module.exports = {
                 }
 
                 //Set up a collector for the message
-                const collector = message.createReactionCollector(filter, { time: 86400000 /*24 hours*/ });
+                const collector = message.createReactionCollector(filter, { time: 900000 /*15 mins*/ });
 
                 collector.on('collect', (reaction, reactionCollector) => {
                     for (let user of reaction.users.values()){
