@@ -12,7 +12,6 @@ for (const file of commandFiles){
     console.log(`Added command ${command.name}`);
 }
 const cooldowns = new Discord.Collection();
-const polls = new Discord.Collection();
 
 //Event listener when a user connected to the server
 client.on('ready', () => {

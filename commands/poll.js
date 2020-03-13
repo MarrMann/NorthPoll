@@ -1,18 +1,23 @@
 class Poll{
-    constructor(question, author, answers, anonymous, voteLimit){
+    constructor(question, author, emotes, answers, anonymous, voteLimit){
         this.question = question;
         this.author = author;
+        this.emotes = emotes;
         this.answers = answers;
+        this.votes.length = answers.length;
         this.anonymous = anonymous || false;
         this.voteLimit = voteLimit || 0;
-        this.key = question + author.id;
+
+        for (let i = 0; i < this.votes.length; i++) {
+            this.votes[i] = new Discord.Collection();
+        }
     }
 
-    key = ``;
     question = ``;
     author;
     anonymous = false;
     voteLimit = 0;
+    emotes = [];
     answers = [];
     votes = [];
 }
@@ -42,15 +47,17 @@ const emotes = [
     '9️⃣',
     '🔟'
 ]
-const pollMap = {};
+const pollMap = new Discord.Collection();
 
 function createEmbed(poll){
-    let embed = new Discord.RichEmbed()
+    let embed = new Discord.MessageEmbed()
         .setColor('#0099ff')
         .setTitle(poll.question)
-        .setAuthor(poll.author.username, poll.author.displayAvatarURL);
+        .setAuthor(poll.author.username, poll.author.avatarURL());
     for (let i = 0; i < poll.answers.length; i++) {
-        embed.addField(numbers[i] + poll.answers[i], '\u200b', true);
+        votes = Array.from(poll.votes[i].keys());
+        voteString = votes.length ? votes.join(", ") : '\u200b';
+        embed.addField(poll.emotes[i] + poll.answers[i] + ` \`${votes.length}\``, voteString, true);
     }
     return embed;
 }
@@ -76,18 +83,19 @@ module.exports = {
         if (answers.length > 10){
             return message.reply(`the maximum number of answers is 10, please make sure you don't exceed this limit.`);
         }
-
-        //Create a poll contianing data of the... Well, poll!
-        let poll = new Poll(question, message.author, answers);
-
-        //Set up the message with the poll
-        embed = createEmbed(poll);
-
+        
         //Set up reaction filter for the message
         const selectedEmotes = emotes.slice(0, answers.length);
         const filter = (reaction, user) => {
-            return true;
+            return !user.bot;
         }
+
+        //Create a poll contianing data of the... Well, poll!
+        let poll = new Poll(question, message.author, selectedEmotes, answers);
+        pollMap.set(poll.question + message.author);
+
+        //Set up the message with the poll
+        embed = createEmbed(poll);
 
         message.channel.send(embed).then(async function (message) {
             try {
@@ -98,17 +106,20 @@ module.exports = {
                 //Set up a collector for the message
                 const collector = message.createReactionCollector(filter, { time: 900000 /*15 mins*/ });
 
-                collector.on('collect', (reaction, reactionCollector) => {
-                    for (let user of reaction.users.values()){
-                        if (!user.bot){
-                            reaction.remove(user);
-                        }
+                collector.on('collect', (reaction, user) => {
+                    console.log(`User ${user.username} voted on answer ${reaction.emoji.name}`);
+
+                    if (poll.emotes.includes(reaction.emoji.name)){
+                        let index = poll.emotes.findIndex(a => a === reaction.emoji.name);
+                        poll.votes[index].set(`<@${user.id}>`, true);
+                        embed = createEmbed(poll);
+                        message.edit(embed);
                     }
-                    message.edit(embed);
-                    console.log(`Collected ${reaction.emoji.name}`);
+                    reaction.users.remove(user);
                 });
                 
                 collector.on('end', collected => {
+                    pollMap.delete(poll.question + poll.author);
                     console.log(`Collected ${collected.size} items`);
                 });
             }
