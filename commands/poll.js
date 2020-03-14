@@ -56,7 +56,18 @@ function createEmbed(poll){
         .setAuthor(poll.author.username, poll.author.avatarURL());
     for (let i = 0; i < poll.answers.length; i++) {
         votes = Array.from(poll.votes[i].keys());
-        voteString = votes.length ? votes.join(", ") : '\u200b';
+        let voteString = "";
+        if (!poll.anonymous){
+            voteString = votes.length ? votes.join(", ") : '\u200b';
+        }
+        else{
+            votes.forEach(vote => {
+                voteString += poll.emotes[i];  
+            });
+            if (!voteString.length){
+                voteString = '\u200b';
+            }
+        }
         embed.addField(poll.emotes[i] + poll.answers[i] + ` \`${votes.length}\``, voteString, true);
     }
     return embed;
@@ -71,7 +82,13 @@ module.exports = {
     usage: '[\"question\"] [optional: secret] [optional: limit n] [\"answer1\":optional_emote:] [\"answer2\":optional_emote:] [...]',
     execute(message, args) {
         //Seperate arguments, need to have things in quotation not separated
-        
+        let lastArg = args[args.length - 1];
+        let extraArgs = lastArg.split(/" +/);
+        args[args.length - 1] = extraArgs.shift();
+        if (extraArgs.length){
+            extraArgs = extraArgs[0].split(/ +/);
+        }
+
         //Split arguments into variables. Questioni, isSecret, limit, and answers[]
         for (let index = 0; index < args.length; index++) {
             args[index] = args[index].replace('\"', '');
@@ -79,6 +96,7 @@ module.exports = {
 
         const question = args.shift();
         const answers = args;
+        const anonymous = extraArgs.includes("anonymous");
 
         if (answers.length > 10){
             return message.reply(`the maximum number of answers is 10, please make sure you don't exceed this limit.`);
@@ -91,7 +109,7 @@ module.exports = {
         }
 
         //Create a poll contianing data of the... Well, poll!
-        let poll = new Poll(question, message.author, selectedEmotes, answers);
+        let poll = new Poll(question, message.author, selectedEmotes, answers, anonymous);
         pollMap.set(poll.question + message.author);
 
         //Set up the message with the poll
@@ -111,7 +129,12 @@ module.exports = {
 
                     if (poll.emotes.includes(reaction.emoji.name)){
                         let index = poll.emotes.findIndex(a => a === reaction.emoji.name);
-                        poll.votes[index].set(`<@${user.id}>`, true);
+                        if (poll.votes[index].has(`<@${user.id}>`)){
+                            poll.votes[index].delete(`<@${user.id}>`);
+                        }
+                        else{
+                            poll.votes[index].set(`<@${user.id}>`, true);
+                        }
                         embed = createEmbed(poll);
                         message.edit(embed);
                     }

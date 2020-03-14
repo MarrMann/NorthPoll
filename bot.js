@@ -85,4 +85,5 @@ client.on("message", message => {
 });
 
 //Initialize the bot by connecting to the server with its token
+console.log("Attempting to log in...");
 client.login(token);
