@@ -68,7 +68,7 @@ function createEmbed(poll){
                 voteString = '\u200b';
             }
         }
-        embed.addField(poll.emotes[i] + poll.answers[i] + ` \`${votes.length}\``, voteString, true);
+        embed.addField(poll.emotes[i] + " " + poll.answers[i] + ` \`${votes.length}\``, voteString);
     }
     return embed;
 }
@@ -77,33 +77,48 @@ module.exports = {
     name: 'poll',
     description: 'Creates a poll',
     args: true,
-    argSlice: /" +"/,
+    argSlice: / +"/,
     guildOnly: true,
+    aliases: ['northpoll'],
     usage: '[\"question\"] [optional: secret] [optional: limit n] [\"answer1\":optional_emote:] [\"answer2\":optional_emote:] [...]',
     execute(message, args) {
         //Seperate arguments, need to have things in quotation not separated
         let lastArg = args[args.length - 1];
-        let extraArgs = lastArg.split(/" +/);
+        let extraArgs = lastArg.split(/"/);
         args[args.length - 1] = extraArgs.shift();
         if (extraArgs.length){
-            extraArgs = extraArgs[0].split(/ +/);
+            if (!extraArgs[0].startsWith(" ")){
+                extraArgs = extraArgs[0].split(/ +/);
+                args[args.length - 1] += "\"" + extraArgs[0];
+                extraArgs.shift();
+            }
+            else{
+                extraArgs = extraArgs[0].split(/ +/);
+                extraArgs.shift();
+            }
         }
 
-        //Split arguments into variables. Questioni, isSecret, limit, and answers[]
-        for (let index = 0; index < args.length; index++) {
-            args[index] = args[index].replace('\"', '');
+        //Split arguments into variables. Question, isSecret, limit, and answers[]
+        const selectedEmotes = emotes.slice(0, args.length - extraArgs.length);
+        args[0] = args[0].slice(1); //Remove the first "
+        const question = args.shift().replace("\"", ""); //Remove the first arg - that's the question
+
+        for (let i = 0; i < args.length; i++) {
+            let split = args[i].split("\"");
+            args[i] = split[0];
+            if (split.length > 1 && split[1].length > 0){
+                selectedEmotes[i] = split[1];
+            }
         }
 
-        const question = args.shift();
         const answers = args;
-        const anonymous = extraArgs.includes("anonymous");
+        const anonymous = extraArgs.includes("anonymous") || extraArgs.includes("anon");
 
         if (answers.length > 10){
             return message.reply(`the maximum number of answers is 10, please make sure you don't exceed this limit.`);
         }
         
         //Set up reaction filter for the message
-        const selectedEmotes = emotes.slice(0, answers.length);
         const filter = (reaction, user) => {
             return !user.bot;
         }
@@ -116,17 +131,36 @@ module.exports = {
         embed = createEmbed(poll);
 
         message.channel.send(embed).then(async function (message) {
-            try {
-                for (let i = 0; i < answers.length; i++) {
-                    await message.react(emotes[i]);
+            //React to the message with each possible vote
+            for (let i = 0; i < poll.answers.length; i++) {
+                try{
+                    await message.react(poll.emotes[i]);
                 }
+                catch (error){
+                    try{
+                        let emoteArr = poll.emotes[i].split(":");
+                        let emote = emoteArr[emoteArr.length - 1].slice(0, emoteArr[emoteArr.length - 1].length - 1);
+                        poll.emotes[i] = emote;
+                        await message.react(poll.emotes[i]);
+                    }
+                    catch{
+                        message.channel.send(`The emote ${poll.emotes[i]} failed to react, replacing with ${emotes[i]}.`);
+                        try {
+                            poll.emotes[i] = emotes[i];
+                            await message.react(poll.emotes[i]);
+                        }
+                        catch (error) {
+                            message.channel.send(`Okay boyo something's messed up. That emote failed too, here's the error:\n${error}`);
+                        }
+                    }
+                }
+            }
 
+            try{
                 //Set up a collector for the message
                 const collector = message.createReactionCollector(filter, { time: 900000 /*15 mins*/ });
 
                 collector.on('collect', (reaction, user) => {
-                    console.log(`User ${user.username} voted on answer ${reaction.emoji.name}`);
-
                     if (poll.emotes.includes(reaction.emoji.name)){
                         let index = poll.emotes.findIndex(a => a === reaction.emoji.name);
                         if (poll.votes[index].has(`<@${user.id}>`)){
@@ -142,12 +176,24 @@ module.exports = {
                 });
                 
                 collector.on('end', collected => {
+                    //Find the highest voted answers
+                    let highestVotes = [];
+                    let maxVotes = -1;
+                    for (let i = 0; i < poll.votes.length; i++) {
+                        if (poll.votes[i].size >= maxVotes){
+                            maxVotes = poll.votes[i].size;
+                            highestVotes.push(poll.answers[i]);
+                        }
+                    }
+                    let highestVotesStr = highestVotes.join(`" ${maxVotes}\n\t"`);
+
+                    message.channel.send(`Poll "${poll.question}" is over, the highest voted answers were:\n\t"${highestVotesStr}" ${maxVotes}`);
                     pollMap.delete(poll.question + poll.author);
                     console.log(`Collected ${collected.size} items`);
                 });
             }
             catch (error){
-                console.error('One of the emotes failed to react.');
+                console.error("Error during collection of poll " + poll.question + ":\n" + error);
             }
         });
     },

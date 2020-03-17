@@ -30,8 +30,7 @@ client.on("message", message => {
 
     //Custom slicing for commands
     if (command.argSlice) {
-        args = message.content.slice(prefix.length).split(command.argSlice);
-        args[0] = args[0].slice(commandName.length);
+        args = message.content.slice(prefix.length + commandName.length + 1).split(command.argSlice);
     }
 
     //If the command requires args, check that there are args.
