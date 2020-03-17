@@ -80,7 +80,7 @@ module.exports = {
     argSlice: / +"/,
     guildOnly: true,
     aliases: ['northpoll'],
-    usage: '[\"question\"] [optional: secret] [optional: limit n] [\"answer1\":optional_emote:] [\"answer2\":optional_emote:] [...]',
+    usage: '[\"question\"] [\"answer1\":optional_emote:] [\"answer2\":optional_emote:] [more answers] [optional: \"anonymous\"]',
     execute(message, args) {
         //Seperate arguments, need to have things in quotation not separated
         let lastArg = args[args.length - 1];
