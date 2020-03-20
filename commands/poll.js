@@ -124,6 +124,28 @@ module.exports = {
                 }
             }
         }
+        let timeLimit = 900000; //15 mins default
+        if (extraArgs.includes("time") || extraArgs.includes("timelimit")){
+            let index = extraArgs.findIndex((arg) => arg == "time" || arg == "timelimit");
+            timeLimit = 0;
+            if (extraArgs.length > index + 1){
+                let timeArr = extraArgs[index + 1].split(":");
+                timeLimit += parseInt(timeArr.pop()) * 60 * 1000; //Minutes to millis
+                if (timeArr.length){
+                    timeLimit += parseInt(timeArr.pop()) * 60 * 60 * 1000; //Hours to millis
+                }
+                if (timeArr.length){
+                    timeLimit += parseInt(timeArr.pop()) * 24 * 60 * 60 * 1000; //Days to millis
+                }
+                if (timeLimit == NaN){
+                    timeLimit = 900000;
+                }
+                if (timeLimit > 604800000){
+                    timeLimit = 604800000; //7 days
+                    message.channel.send("The maximum time limit is 7 days, setting the poll to that.");
+                }
+            }
+        }
 
         if (answers.length > 10){
             return message.reply(`the maximum number of answers is 10, please make sure you don't exceed this limit.`);
@@ -169,7 +191,7 @@ module.exports = {
 
             try{
                 //Set up a collector for the message
-                const collector = message.createReactionCollector(filter, { time: 900000 /*15 mins*/ });
+                const collector = message.createReactionCollector(filter, { time: timeLimit });
 
                 collector.on('collect', (reaction, user) => {
                     if (poll.emotes.includes(reaction.emoji.name)){
