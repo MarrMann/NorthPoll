@@ -118,9 +118,10 @@ module.exports = {
         if (extraArgs.includes("limit")){
             let index = extraArgs.findIndex((arg) => arg == "limit");
             if (extraArgs.length > index + 1){
-                let num = parseInt(extraArgs[index + 1]);
-                if (num != NaN){
-                    limit = num;
+                limit = parseInt(extraArgs[index + 1]);
+                if (limit == NaN){
+                    limit = 0;
+                    message.channel.send("Error while parsing vote limit, setting to default value.");
                 }
             }
         }
@@ -139,6 +140,7 @@ module.exports = {
                 }
                 if (timeLimit == NaN){
                     timeLimit = 900000;
+                    message.channel.send("Error while parsing time limit, setting to default value.");
                 }
                 if (timeLimit > 604800000){
                     timeLimit = 604800000; //7 days
