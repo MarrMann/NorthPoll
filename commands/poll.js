@@ -81,7 +81,7 @@ module.exports = {
     guildOnly: true,
     aliases: ['northpoll', 'npoll'],
     cooldown: 30,
-    usage: '[\"question\"] [\"answer1\":optional_emote:] [\"answer2\":optional_emote:] [more answers] [optional: \"anonymous\"]',
+    usage: '[\"question\"] [\"answer1\":optional_emote:] [\"answer2\":optional_emote:] [more answers]\n**Optional parameters:** [anonymous/anon], [limit n], [timelimit/time dd:hh:mm]',
     execute(message, args) {
         //Seperate arguments, need to have things in quotation not separated
         let lastArg = args[args.length - 1];
