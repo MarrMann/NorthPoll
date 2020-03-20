@@ -79,7 +79,7 @@ module.exports = {
     args: true,
     argSlice: / +"/,
     guildOnly: true,
-    aliases: ['northpoll'],
+    aliases: ['northpoll', 'npoll'],
     usage: '[\"question\"] [\"answer1\":optional_emote:] [\"answer2\":optional_emote:] [more answers] [optional: \"anonymous\"]',
     execute(message, args) {
         //Seperate arguments, need to have things in quotation not separated
