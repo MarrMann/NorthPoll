@@ -99,7 +99,7 @@ module.exports = {
         }
 
         //Split arguments into variables. Question, isSecret, limit, and answers[]
-        const selectedEmotes = emotes.slice(0, args.length - extraArgs.length);
+        const selectedEmotes = emotes.slice(0, args.length - 1);
         args[0] = args[0].slice(1); //Remove the first "
         const question = args.shift().replace("\"", ""); //Remove the first arg - that's the question
 
@@ -113,6 +113,16 @@ module.exports = {
 
         const answers = args;
         const anonymous = extraArgs.includes("anonymous") || extraArgs.includes("anon");
+        let limit = 0;
+        if (extraArgs.includes("limit")){
+            let index = extraArgs.findIndex((arg) => arg == "limit");
+            if (extraArgs.length > index + 1){
+                let num = parseInt(extraArgs[index + 1]);
+                if (num != NaN){
+                    limit = num;
+                }
+            }
+        }
 
         if (answers.length > 10){
             return message.reply(`the maximum number of answers is 10, please make sure you don't exceed this limit.`);
@@ -167,6 +177,17 @@ module.exports = {
                             poll.votes[index].delete(`<@${user.id}>`);
                         }
                         else{
+                            if (limit > 0){
+                                let count = 0;
+                                poll.votes.forEach(vote => {
+                                    if (vote.has(`<@${user.id}>`)){
+                                        count++;
+                                    }
+                                });
+                                if (count >= limit){
+                                    return reaction.users.remove(user);
+                                }
+                            }
                             poll.votes[index].set(`<@${user.id}>`, true);
                         }
                         embed = createEmbed(poll);
@@ -189,7 +210,6 @@ module.exports = {
 
                     message.channel.send(`Poll "${poll.question}" is over, the highest voted answers were:\n\t"${highestVotesStr}" ${maxVotes}`);
                     pollMap.delete(poll.question + poll.author);
-                    console.log(`Collected ${collected.size} items`);
                 });
             }
             catch (error){
